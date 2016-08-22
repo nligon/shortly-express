@@ -10,7 +10,7 @@ var db = require('bookshelf')(knex);
 
 db.knex.schema.hasTable('urls').then(function(exists) {
   if (!exists) {
-    db.knex.schema.createTable('urls', function (link) {
+    db.knex.schema.createTable('urls', function(link) {
       link.increments('id').primary();
       link.string('url', 255);
       link.string('baseUrl', 255);
@@ -18,7 +18,7 @@ db.knex.schema.hasTable('urls').then(function(exists) {
       link.string('title', 255);
       link.integer('visits');
       link.timestamps();
-    }).then(function (table) {
+    }).then(function(table) {
       console.log('Created Table', table);
     });
   }
@@ -26,11 +26,24 @@ db.knex.schema.hasTable('urls').then(function(exists) {
 
 db.knex.schema.hasTable('clicks').then(function(exists) {
   if (!exists) {
-    db.knex.schema.createTable('clicks', function (click) {
+    db.knex.schema.createTable('clicks', function(click) {
       click.increments('id').primary();
       click.integer('linkId');
       click.timestamps();
-    }).then(function (table) {
+    }).then(function(table) {
+      console.log('Created Table', table);
+    });
+  }
+
+});
+
+db.knex.schema.hasTable('users').then(function(exists) {
+  if (!exists) {
+    db.knex.schema.createTable('users', function(link) {
+      link.increments('id').primary();
+      link.string('username', 255);
+      link.string('password', 255);
+    }).then(function(table) {
       console.log('Created Table', table);
     });
   }

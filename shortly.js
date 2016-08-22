@@ -25,7 +25,14 @@ app.use(express.static(__dirname + '/public'));
 
 app.get('/', 
 function(req, res) {
+  console.log('*******1');
   res.render('index');
+});
+
+app.get('/login', 
+function(req, res) {
+  console.log('redirected to login');
+  res.render('login');
 });
 
 app.get('/create', 
@@ -85,9 +92,10 @@ function(req, res) {
 /************************************************************/
 
 app.get('/*', function(req, res) {
+  console.log('*******4');
   new Link({ code: req.params[0] }).fetch().then(function(link) {
     if (!link) {
-      res.redirect('/');
+      res.redirect('/login');
     } else {
       var click = new Click({
         linkId: link.get('id')
