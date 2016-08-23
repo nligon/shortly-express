@@ -22,61 +22,137 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
 
+var loggedIn = false;
+
 
 app.get('/', 
 function(req, res) {
-  console.log('*******1');
-  res.render('index');
+  loggedIn ? res.render('index') : res.redirect('/login');
 });
 
 app.get('/login', 
 function(req, res) {
-  console.log('redirected to login');
+  // console.log('get /login******');
+  // console.log('THE REQ ******************', req);
+
+  res.render('login');
+});
+
+app.get('/logout', 
+function(req, res) {
+  // console.log('get /logout******');
+  // console.log('THE REQ ******************', req);
+  loggedIn = false;
   res.render('login');
 });
 
 app.get('/create', 
 function(req, res) {
-  res.render('index');
+  // console.log('get /create******');
+  console.log('LOGGED IN? *******', loggedIn);
+  loggedIn ? res.render('index') : res.redirect('/login');
 });
 
 app.get('/links', 
 function(req, res) {
-  Links.reset().fetch().then(function(links) {
-    res.status(200).send(links.models);
-  });
+  // console.log('get /links******');
+  if (loggedIn) {
+    Links.reset().fetch().then(function(links) {
+      res.status(200).send(links.models);
+    });
+  } else {
+    res.redirect('/login');
+  }
 });
 
 app.post('/links', 
 function(req, res) {
+  // console.log('post /create******');
   var uri = req.body.url;
-
   if (!util.isValidUrl(uri)) {
-    console.log('Not a valid url: ', uri);
     return res.sendStatus(404);
   }
 
-  new Link({ url: uri }).fetch().then(function(found) {
+  if (loggedIn) {
+
+    new Link({ url: uri }).fetch().then(function(found) {
+      if (found) {
+        res.status(200).send(found.attributes);
+      } else {
+        util.getUrlTitle(uri, function(err, title) {
+          if (err) {
+            return res.sendStatus(404);
+          }
+
+          Links.create({
+            url: uri,
+            title: title,
+            baseUrl: req.headers.origin
+          })
+          .then(function(newLink) {
+            res.status(200).send(newLink);
+          });
+        });
+      }
+    });
+    
+  } else {
+    res.status(200).redirect('/login');
+  }
+
+
+
+
+});
+
+app.post('/signup', 
+function(req, res) {
+  // console.log('post /signup******');
+
+  var userObj = {
+    username: req.body.username,
+    password: req.body.password
+  };
+
+  new User(userObj).fetch().then(function(found) {
     if (found) {
       res.status(200).send(found.attributes);
     } else {
-      util.getUrlTitle(uri, function(err, title) {
-        if (err) {
-          console.log('Error reading URL heading: ', err);
-          return res.sendStatus(404);
-        }
-
-        Links.create({
-          url: uri,
-          title: title,
-          baseUrl: req.headers.origin
-        })
-        .then(function(newLink) {
-          res.status(200).send(newLink);
-        });
+      Users.create(userObj)
+      .then(function(newUser) {
+        loggedIn = true;
+        res.status(200).redirect('/');
       });
     }
   });
+  
+});
+
+app.post('/login', 
+function(req, res) {
+  // console.log('post /login******');
+
+  var userObj = {
+    username: req.body.username,
+    password: req.body.password
+  };
+
+  new User(userObj).fetch().then(function(found) {
+    if (found) {
+      // console.log('POST LOGIN FOUND*****************', found);
+      loggedIn = true;
+      res.redirect(200, '/');
+    } else {
+      // console.log('POST LOGIN NOT FOUND*****************');
+      Users.create(userObj)
+      .then(function(newUser) {
+        console.log('REDIRECTING TO LOGIN');
+        loggedIn = false;
+        res.status(200).redirect('/login');
+      });
+    }
+  });
+  
 });
 
 /************************************************************/
@@ -92,7 +168,6 @@ function(req, res) {
 /************************************************************/
 
 app.get('/*', function(req, res) {
-  console.log('*******4');
   new Link({ code: req.params[0] }).fetch().then(function(link) {
     if (!link) {
       res.redirect('/login');
@@ -111,5 +186,4 @@ app.get('/*', function(req, res) {
   });
 });
 
-console.log('Shortly is listening on 4568');
 app.listen(4568);
